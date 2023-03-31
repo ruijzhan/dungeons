@@ -1,6 +1,5 @@
 package main
 
-//import cmd/server/app
 import (
 	"log"
 
@@ -8,7 +7,7 @@ import (
 )
 
 func main() {
-	server := app.NewServer()
+	server := app.NewApp()
 
 	if err := server.Execute(); err != nil {
 		log.Fatalln(err)

@@ -4,32 +4,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Option struct {
+type ServerOption struct {
 	Addr string
 }
 
-func (o *Option) newServer() *Server {
-	s := &Server{
-		addr:   o.Addr,
-		Engine: gin.New(),
-	}
-	return s
-}
-
 type Server struct {
-	addr string
+	opt ServerOption
 	*gin.Engine
 }
 
-func (s *Server) run() error {
-	s.route()
-	return s.Run(s.addr)
+// NewServer creates a new HTTP server with custom options.
+func NewServer(opt ServerOption) *Server {
+	srv := &Server{
+		opt:    opt,
+		Engine: gin.New(),
+	}
+	srv.addRoutes()
+	return srv
 }
 
-func (s *Server) route() {
-	s.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+func (s *Server) Run() error {
+	return s.Engine.Run(s.opt.Addr)
 }

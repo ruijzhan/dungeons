@@ -1,25 +1,26 @@
 package app
 
 import (
+	"log"
+
 	"github.com/spf13/cobra"
 )
 
-func NewServer() *cobra.Command {
+func NewApp() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Run the server",
-		RunE:  run(),
+		Run:   run(),
 	}
 	return cmd
 }
 
-func run() func(*cobra.Command, []string) error {
-	return func(c *cobra.Command, s []string) error {
-		opt := &Option{
-			Addr: ":8080",
+func run() func(*cobra.Command, []string) {
+	return func(c *cobra.Command, s []string) {
+		server := NewServer(ServerOption{Addr: ":8080"})
+		err := server.Run()
+		if err != nil {
+			log.Fatalf("server run failed: %v", err)
 		}
-		server := opt.newServer()
-
-		return server.run()
 	}
 }
