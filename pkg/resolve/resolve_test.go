@@ -7,11 +7,24 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ruijzhan/dungeons/pkg/cache"
 )
+
+type fakeCache struct{}
+
+func (fakeCache) Get(key any) (any, error) {
+	return nil, errors.New("fake not implemented")
+}
+
+func (fakeCache) Set(key any, value any) error {
+	return errors.New("fake not implemented")
+}
 
 func TestResolver_Resolve(t *testing.T) {
 	resolver := &DefaultResolver{
-		l: net.DefaultResolver,
+		lookup: net.DefaultResolver,
+		cache:  fakeCache{},
 	}
 
 	t.Run("success", func(t *testing.T) {
@@ -98,7 +111,8 @@ func TestDefaultResolver_Resolve(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := DefaultResolver{
-				l: tt.resolver,
+				lookup: tt.resolver,
+				cache:  fakeCache{},
 			}
 
 			if tt.timeout {
@@ -123,4 +137,54 @@ func TestDefaultResolver_Resolve(t *testing.T) {
 			}
 		})
 	}
+}
+
+type mockLookup struct{}
+
+func (m mockLookup) LookupIPAddr(ctx context.Context, host string) ([]net.IPAddr, error) {
+	switch host {
+	case "example.com":
+		return []net.IPAddr{{IP: net.ParseIP("93.184.216.34")}}, nil
+	case "localhost":
+		return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}, {IP: net.ParseIP("::1")}}, nil
+	default:
+		return nil, &net.DNSError{Err: "lookup failed", Name: host}
+	}
+}
+
+func TestDefaultResolver_Resolve2(t *testing.T) {
+	ctx := context.Background()
+	r := DefaultResolver{
+		lookup: &mockLookup{},
+		cache:  cache.NewTTL(),
+	}
+
+	t.Run("cache hit", func(t *testing.T) {
+		ip := net.ParseIP("93.184.216.34")
+		r.cache.Set("example.com", []net.IP{ip})
+		res, err := r.Resolve(ctx, "example.com")
+		if err != nil {
+			t.Errorf("Expected no error but got %v", err)
+		}
+		if len(res) != 1 || !res[0].Equal(ip) {
+			t.Errorf("Expected %v but got %v", []net.IP{ip}, res)
+		}
+	})
+
+	t.Run("cache miss", func(t *testing.T) {
+		res, err := r.Resolve(ctx, "example.com")
+		if err != nil {
+			t.Errorf("Expected no error but got %v", err)
+		}
+		if len(res) != 1 || !res[0].Equal(net.ParseIP("93.184.216.34")) {
+			t.Errorf("Expected [93.184.216.34] but got %v", res)
+		}
+	})
+
+	t.Run("lookup failed", func(t *testing.T) {
+		_, err := r.Resolve(ctx, "nonexistent-host")
+		if err == nil {
+			t.Errorf("Expected an error but got none")
+		}
+	})
 }

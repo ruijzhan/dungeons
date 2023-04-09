@@ -3,6 +3,8 @@ package resolve
 import (
 	"context"
 	"net"
+
+	"github.com/ruijzhan/dungeons/pkg/cache"
 )
 
 type Resolver interface {
@@ -11,6 +13,7 @@ type Resolver interface {
 
 func New() Resolver {
 	return &DefaultResolver{
-		l: net.DefaultResolver,
+		lookup: net.DefaultResolver,
+		cache:  cache.NewTTL(),
 	}
 }
