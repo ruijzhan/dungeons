@@ -34,3 +34,10 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
+.PHONY: docker-rm
+docker-rm: ## Remove docker image with the manager.
+	docker rmi ${IMG}
+
+.PHONY: docker-build-push
+docker-build-push: docker-build ## Build docker image with the manager.
+	docker push ${IMG}
