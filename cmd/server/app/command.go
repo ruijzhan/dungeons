@@ -7,20 +7,25 @@ import (
 )
 
 func NewApp() *cobra.Command {
-	cmd := &cobra.Command{
+	serverCmd := &cobra.Command{
 		Use:   "server",
-		Short: "Run the server",
+		Short: "Start the server",
 		Run:   run(),
 	}
-	return cmd
+	return serverCmd
 }
 
 func run() func(*cobra.Command, []string) {
-	return func(c *cobra.Command, s []string) {
-		server := NewServer(ServerOption{Addr: ":8080"})
-		err := server.Run()
-		if err != nil {
-			log.Fatalf("server run failed: %v", err)
+	return func(cmd *cobra.Command, args []string) {
+		// Create server with default options
+		server := NewServer(ServerOption{
+			HttpListenAddr: ":8080",
+			GrpcListenAddr: ":8081",
+		})
+
+		// Start the server
+		if err := server.Run(); err != nil {
+			log.Fatalf("server failed to run: %v", err)
 		}
 	}
 }
