@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/ruijzhan/dungeons/cmd/server/http"
 	"github.com/ruijzhan/dungeons/pkg/resolve"
@@ -39,7 +40,10 @@ func NewServer(opt ServerOption) *Server {
 		dns:    resolve.New(),
 		rpc:    grpc.NewServer(),
 	}
-	srv.addRoutes()
+
+	srv.installMiddleware()
+	srv.installRoutes()
+
 	return srv
 }
 
@@ -80,8 +84,17 @@ func listen(addr string) (ln net.Listener) {
 	return
 }
 
-// addRoutes adds HTTP handlers to the server's router.
-func (s *Server) addRoutes() {
-	http.AddPing(s.Engine)
-	http.AddCheckHost(s.Engine, s.dns)
+// installRoutes adds HTTP handlers to the server's router.
+func (s *Server) installRoutes() {
+	http.InstallPing(s.Engine)
+	http.InstallCheckHost(s.Engine, s.dns)
+}
+
+func (s *Server) installMiddleware() {
+	ms := []gin.HandlerFunc{
+		gin.Recovery(),
+		logger.SetLogger(),
+	}
+
+	s.Engine.Use(ms...)
 }
